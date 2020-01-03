@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+import random
 
 class Simulation:
     DEFAULT_POST_CHANCE = 0.1
@@ -7,6 +8,7 @@ class Simulation:
     DEFAULT_TICK_LIMIT = -1 # no limit default
     DEFAULT_NUM_FRIENDS = 5
     DEFAULT_INITIAL_TICK = 0
+    DEFAULT_POST_INFLUENCE = 0.1
     
     def __init__(self, parameters):
         # Set defaults
@@ -15,6 +17,7 @@ class Simulation:
         self.post_chance = DEFAULT_POST_CHANCE
         self.num_users = DEFAULT_NUM_USERS
         self.num_friends = DEFAULT_NUM_FRIENDS
+        self.post_influence = 0.1
         
         self.parse_parameters(parameters)
         
@@ -28,6 +31,8 @@ class Simulation:
         # Initiate values df
         self.values = pd.DataFram(columns = self.topics,
                                   index = self.users.index)
+        # Initiate deltas df
+        self.deltas = self.values.copy()
     
     def run():
         # If no limit, continue until interrupted
@@ -42,9 +47,26 @@ class Simulation:
                 self.tick += 1
     
     def tick():
+        # reset deltas
+        self.deltas = self.deltas * 0.0
+        
+        # Init posts df
         self.posts = pd.DataFrame(columns = ["user", "topic"])
-        # Add post
-        df.loc[df.shape[0]] = {'user': user, "topic": topic}
+        
+        for (user in self.users):
+            # check if users posts
+            if (random.uniform(0,1) < self.post_chance):
+                # Add post
+                topic = self.pick_topic()
+                df.loc[df.shape[0]] = {'user': user.id, "topic": topic}
+                
+                # update deltas
+                for (friend in user.friends):
+                    delta = self.values.loc[friend.id, topic] - self.values.loc[usaer.id, topic] * self.post_influence
+                    
+                
+    def pick_topic(self, user):
+        return self.topics[random(0, self.topics.size)]
     
     def record():
         return ...
@@ -63,6 +85,9 @@ class Simulation:
                 
         if ("numFriends" in parameters_dict):
             self.num_friends = parameters_dict["numFriends"]
+        
+        if ("postInfluence" in parameters_dict):
+            self.post_influence = parameters_dict["postInfluence"]
         
         try:
             self.topics = parameters_dict["topics"]
