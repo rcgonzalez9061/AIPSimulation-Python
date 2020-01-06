@@ -40,8 +40,7 @@ class Simulation:
 
         # Initiate values df
         self.values = (
-            pd.DataFrame(np.random.rand(self.num_users, len(self.topics)) * Simulation.VALUE_RANGE - (
-                        Simulation.VALUE_RANGE / 2),
+            pd.DataFrame(np.random.rand(self.num_users, len(self.topics)) * Simulation.VALUE_RANGE - (Simulation.VALUE_RANGE / 2),
                          index=self.users.index,
                          columns=self.topics)
         )
@@ -62,21 +61,25 @@ class Simulation:
         if (self.tick_limit == -1):
             while True:
                 try:
-                    print("Beginning tick ".format(self.tick_count))
+                    print("\rBeginning tick {}".format(self.tick_count), end="")
                     self.tick()
                     self.tick_count += 1
                     self.update_record()
                 except (KeyboardInterrupt, SystemExit):
                     print("Exiting simulation...")
+                    break
 
         else:  # run until limit reached
             while self.tick_count <= self.tick_limit:
-                print("Beginning tick {}".format(self.tick_count))
+                print("\rBeginning tick {}, {}% complete.".format(
+                    self.tick_count, 
+                    round((self.tick_count / self.tick_limit) * 100, 2)
+                ), end="")
                 self.tick()
                 self.tick_count += 1
                 self.update_record()
         self.save_record()
-        print("Finshed.")
+        print("\nFinshed.")
 
     def tick(self):
         # reset deltas
@@ -96,7 +99,7 @@ class Simulation:
 
         # consolidate deltas
         self.values += self.deltas
-        self.values.clip(Simulation.MIN_VALUE, Simulation.MAX_VALUE)
+        self.values = self.values.clip(Simulation.MIN_VALUE, Simulation.MAX_VALUE)
 
     def pick_topic(self, user):
         """Picks a topic, may consider user's preference in future"""

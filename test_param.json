@@ -1,0 +1,5 @@
+{
+    "numUsers": 100,
+    "tickLimit": 1000,
+    "topics": ["Privacy", "Public Transportation", "Iran"]
+}
