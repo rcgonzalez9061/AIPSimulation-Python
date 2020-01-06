@@ -5,7 +5,9 @@ class User:
         self.friends = set()
         
     def add_friends(self, friends):
+        if self.id in friends:
+            friends.remove(self.id)
         self.friends.update(friends)
         
-    def getFriends():
+    def getFriends(self):
         return self.friends
