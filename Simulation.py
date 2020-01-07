@@ -1,7 +1,6 @@
 import json
 import pandas as pd
 import random
-from User import User
 import numpy as np
 
 
@@ -122,6 +121,12 @@ class Simulation:
     def save_record(self):
         self.values_record.to_csv(self.values_path, index=False)
         self.posts.to_csv(self.posts_path, index=False)
+        
+    def save_adjacency_matrix(self, path="adj_matric.csv"):
+        adj_mat = pd.DataFrame(np.zeros((self.users.size, self.users.size)))
+        for user in self.users:
+            adj_mat.loc[user.id, user.friends] = 1
+        adj_mat.to_csv(path, header=False, index=False)
 
     def parse_parameters(self, parameters):
         with open(parameters, 'r') as text:
