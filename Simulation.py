@@ -71,13 +71,17 @@ class Simulation:
 
         else:  # run until limit reached
             while self.tick_count <= self.tick_limit:
-                print("\rBeginning tick {}, {}% complete.".format(
-                    self.tick_count, 
-                    round((self.tick_count / self.tick_limit) * 100, 2)
-                ), end="")
-                self.tick()
-                self.tick_count += 1
-                self.update_record()
+                try:
+                    print("\rBeginning tick {}, {}% complete.".format(
+                        self.tick_count, 
+                        round((self.tick_count / self.tick_limit) * 100, 2)
+                    ), end="")
+                    self.tick()
+                    self.tick_count += 1
+                    self.update_record()
+                except (KeyboardInterrupt, SystemExit):
+                    print("Exiting simulation...")
+                    break
         self.save_record()
         print("\nFinshed.")
 
@@ -148,3 +152,17 @@ class Simulation:
             self.topics = parameters_dict["topics"]
         except:
             print("No topics provided. Please review your parameters!")
+
+class User:
+    
+    def __init__(self, id):
+        self.id = id
+        self.friends = set()
+        
+    def add_friends(self, friends):
+        if self.id in friends:
+            friends.remove(self.id)
+        self.friends.update(friends)
+        
+    def getFriends(self):
+        return self.friends
