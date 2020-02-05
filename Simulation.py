@@ -72,7 +72,7 @@ class Simulation:
             while self.tick_count <= self.tick_limit:
                 try:
                     print("\rBeginning tick {}, {}% complete.".format(
-                        self.tick_count, 
+                        self.tick_count,
                         round((self.tick_count / self.tick_limit) * 100, 2)
                     ), end="")
                     self.tick()
@@ -96,8 +96,9 @@ class Simulation:
                 self.posts.loc[self.posts.shape[0]] = {'user': user.id, "topic": topic, "tick": self.tick_count}
 
                 # update deltas
+                diff = (self.values.loc[user.friends, topic] - self.values.loc[user.id, topic])
                 self.deltas.loc[user.friends, topic] += (
-                        (self.values.loc[user.friends, topic] - self.values.loc[user.id, topic]) * self.post_influence
+                        IPC(diff) * self.post_influence
                 )
 
         # consolidate deltas
@@ -121,7 +122,7 @@ class Simulation:
     def save_record(self):
         self.values_record.to_csv(self.values_path, index=False)
         self.posts.to_csv(self.posts_path, index=False)
-        
+
     def save_adjacency_matrix(self, path="adj_matric.csv"):
         adj_mat = pd.DataFrame(np.zeros((self.users.size, self.users.size)))
         for user in self.users:
@@ -159,15 +160,18 @@ class Simulation:
             print("No topics provided. Please review your parameters!")
 
 class User:
-    
+
     def __init__(self, id):
         self.id = id
         self.friends = set()
-        
+
     def add_friends(self, friends):
         if self.id in friends:
             friends.remove(self.id)
         self.friends.update(friends)
-        
+
     def getFriends(self):
         return self.friends
+
+def IPC(diff):
+    return np.sin(np.pi((diff/25) + 0.5))
