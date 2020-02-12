@@ -1,5 +1,6 @@
 {
-    "numUsers": 100,
-    "tickLimit": 1000,
-    "topics": ["Privacy", "Public Transportation", "Iran"]
+    "num_users": 100,
+    "tick_limit": 600,
+    "topics": ["Privacy", "Public Transportation", "Iran"],
+    "IPC_func": "log"
 }

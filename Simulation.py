@@ -3,6 +3,61 @@ import pandas as pd
 import random
 import numpy as np
 
+class User:
+
+    def __init__(self, id):
+        self.id = id
+        self.friends = set()
+
+    def add_friends(self, friends):
+        if self.id in friends:
+            friends.remove(self.id)
+        self.friends.update(friends)
+
+    def getFriends(self):
+        return self.friends
+
+def IPC_sin(diff):
+    """
+    Takes a difference vector, derived from the difference of a Series of a
+    user's friends' values and a user's value on a topic.
+
+    Returns the vector with an function meant to simulate Identity Protected
+    Cognition.
+    """
+    return np.sin(np.pi * ((diff/25) + 0.5))
+
+def IPC_linear(diff):
+    """
+    Takes a difference vector, derived from the difference of a Series of a
+    user's friends' values and a user's value on a topic.
+
+    Returns the vector with an function meant to simulate Identity Protected
+    Cognition.
+    """
+    diff = abs(diff)
+    return (diff / -10) + 1
+
+def IPC_quadratic(diff):
+    """
+    Takes a difference vector, derived from the difference of a Series of a
+    user's friends' values and a user's value on a topic.
+
+    Returns the vector with an function meant to simulate Identity Protected
+    Cognition.
+    """
+    return -(diff/15)**2 + 1
+
+def IPC_log(diff):
+    """
+    Takes a difference vector, derived from the difference of a Series of a
+    user's friends' values and a user's value on a topic.
+
+    Returns the vector with an function meant to simulate Identity Protected
+    Cognition.
+    """
+    diff = abs(diff)
+    return np.log(-diff + 20.3) - np.log(20.3) + 1
 
 class Simulation:
     DEFAULT_POST_CHANCE = 0.1
@@ -16,6 +71,13 @@ class Simulation:
     VALUE_RANGE = MAX_VALUE - MIN_VALUE
     DEFAULT_VALUES_PATH = "values record.csv"
     DEFAULT_POSTS_PATH = "post record.csv"
+    DEFAULT_IPC_FUNC = 'sin'
+
+    IPC_map = {"sin": IPC_sin,
+                "linear": IPC_linear,
+                "quadratic": IPC_quadratic,
+                "log": IPC_log,
+    }
 
     def __init__(self, parameters):
         # Defaults
@@ -27,6 +89,7 @@ class Simulation:
         self.post_influence = Simulation.DEFAULT_POST_INFLUENCE
         self.values_path = Simulation.DEFAULT_VALUES_PATH
         self.posts_path = Simulation.DEFAULT_POSTS_PATH
+        self.IPC_func = self.IPC_map[self.DEFAULT_IPC_FUNC]
 
         self.parse_parameters(parameters)
 
@@ -99,7 +162,7 @@ class Simulation:
                 diff = (self.values.loc[user.friends, topic] - self.values.loc[user.id, topic])
                 magnitude = self.values.loc[user.id, topic] * self.post_influence
                 self.deltas.loc[user.friends, topic] += (
-                        IPC(diff) * magnitude
+                        self.IPC_func(diff) * magnitude
                 )
 
         # consolidate deltas
@@ -134,52 +197,31 @@ class Simulation:
         with open(parameters, 'r') as text:
             parameters_dict = json.loads(text.read())
 
-        if "tickLimit" in parameters_dict:
-            self.tick_limit = parameters_dict["tickLimit"]
+        if "tick_limit" in parameters_dict:
+            self.tick_limit = parameters_dict["tick_limit"]
 
-        if "postChance" in parameters_dict:
-            self.post_chance = parameters_dict["postChance"]
+        if "post_chance" in parameters_dict:
+            self.post_chance = parameters_dict["post_chance"]
 
-        if "numUsers" in parameters_dict:
-            self.num_users = parameters_dict["numUsers"]
+        if "num_users" in parameters_dict:
+            self.num_users = parameters_dict["num_users"]
 
-        if "numFriends" in parameters_dict:
-            self.num_friends = parameters_dict["numFriends"]
+        if "num_friends" in parameters_dict:
+            self.num_friends = parameters_dict["num_friends"]
 
-        if "postInfluence" in parameters_dict:
-            self.post_influence = parameters_dict["postInfluence"]
+        if "post_influence" in parameters_dict:
+            self.post_influence = parameters_dict["post_influence"]
 
-        if "valuesPath" in parameters_dict:
-            self.values_path = parameters_dict["valuesPath"]
+        if "values_path" in parameters_dict:
+            self.values_path = parameters_dict["values_path"]
 
-        if "postsPath" in parameters_dict:
-            self.posts_path = parameters_dict["postsPath"]
+        if "posts_path" in parameters_dict:
+            self.posts_path = parameters_dict["posts_path"]
+
+        if "IPC_func" in parameters_dict:
+            self.IPC_func = self.IPC_map[parameters_dict["IPC_func"]]
 
         try:
             self.topics = parameters_dict["topics"]
         except:
             print("No topics provided. Please review your parameters!")
-
-class User:
-
-    def __init__(self, id):
-        self.id = id
-        self.friends = set()
-
-    def add_friends(self, friends):
-        if self.id in friends:
-            friends.remove(self.id)
-        self.friends.update(friends)
-
-    def getFriends(self):
-        return self.friends
-
-def IPC(diff):
-    """
-    Takes a difference vector, derived from the difference of a Series of a
-    user's friends' values and a user's value on a topic.
-
-    Returns the vector with an function meant to simulate Identity Protected
-    Cognition.
-    """
-    return np.sin(np.pi * ((diff/25) + 0.5))
