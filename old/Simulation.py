@@ -1,6 +1,7 @@
 import json
 import pandas as pd
 import random
+from User import User
 import numpy as np
 
 
@@ -39,7 +40,8 @@ class Simulation:
 
         # Initiate values df
         self.values = (
-            pd.DataFrame(np.random.rand(self.num_users, len(self.topics)) * Simulation.VALUE_RANGE - (Simulation.VALUE_RANGE / 2),
+            pd.DataFrame(np.random.rand(self.num_users, len(self.topics)) * Simulation.VALUE_RANGE - (
+                        Simulation.VALUE_RANGE / 2),
                          index=self.users.index,
                          columns=self.topics)
         )
@@ -60,29 +62,21 @@ class Simulation:
         if (self.tick_limit == -1):
             while True:
                 try:
-                    print("\rBeginning tick {}".format(self.tick_count), end="")
+                    print("Beginning tick ".format(self.tick_count))
                     self.tick()
                     self.tick_count += 1
                     self.update_record()
                 except (KeyboardInterrupt, SystemExit):
                     print("Exiting simulation...")
-                    break
 
         else:  # run until limit reached
             while self.tick_count <= self.tick_limit:
-                try:
-                    print("\rBeginning tick {}, {}% complete.".format(
-                        self.tick_count,
-                        round((self.tick_count / self.tick_limit) * 100, 2)
-                    ), end="")
-                    self.tick()
-                    self.tick_count += 1
-                    self.update_record()
-                except (KeyboardInterrupt, SystemExit):
-                    print("Exiting simulation...")
-                    break
+                print("Beginning tick {}".format(self.tick_count))
+                self.tick()
+                self.tick_count += 1
+                self.update_record()
         self.save_record()
-        print("\nFinshed.")
+        print("Finshed.")
 
     def tick(self):
         # reset deltas
@@ -96,15 +90,13 @@ class Simulation:
                 self.posts.loc[self.posts.shape[0]] = {'user': user.id, "topic": topic, "tick": self.tick_count}
 
                 # update deltas
-                diff = (self.values.loc[user.friends, topic] - self.values.loc[user.id, topic])
-                magnitude = self.values.loc[user.id, topic] * self.post_influence
                 self.deltas.loc[user.friends, topic] += (
-                        IPC(diff) * magnitude
+                        (self.values.loc[user.friends, topic] - self.values.loc[user.id, topic]) * self.post_influence
                 )
 
         # consolidate deltas
         self.values += self.deltas
-        self.values = self.values.clip(Simulation.MIN_VALUE, Simulation.MAX_VALUE)
+        self.values.clip(Simulation.MIN_VALUE, Simulation.MAX_VALUE)
 
     def pick_topic(self, user):
         """Picks a topic, may consider user's preference in future"""
@@ -123,12 +115,6 @@ class Simulation:
     def save_record(self):
         self.values_record.to_csv(self.values_path, index=False)
         self.posts.to_csv(self.posts_path, index=False)
-
-    def save_adjacency_matrix(self, path="adj_matric.csv"):
-        adj_mat = pd.DataFrame(np.zeros((self.users.size, self.users.size)))
-        for user in self.users:
-            adj_mat.loc[user.id, user.friends] = 1
-        adj_mat.to_csv(path, header=False, index=False)
 
     def parse_parameters(self, parameters):
         with open(parameters, 'r') as text:
@@ -159,27 +145,3 @@ class Simulation:
             self.topics = parameters_dict["topics"]
         except:
             print("No topics provided. Please review your parameters!")
-
-class User:
-
-    def __init__(self, id):
-        self.id = id
-        self.friends = set()
-
-    def add_friends(self, friends):
-        if self.id in friends:
-            friends.remove(self.id)
-        self.friends.update(friends)
-
-    def getFriends(self):
-        return self.friends
-
-def IPC(diff):
-    """
-    Takes a difference vector, derived from the difference of a Series of a
-    user's friends' values and a user's value on a topic.
-
-    Returns the vector with an function meant to simulate Identity Protected
-    Cognition.
-    """
-    return np.sin(np.pi * ((diff/25) + 0.5))

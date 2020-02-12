@@ -1,0 +1,6 @@
+{
+    "numUsers": 10,
+    "tickLimit": 1000,
+    "postChance": 0.1,
+    "topics": ["Privacy", "Public Transport"]
+}
