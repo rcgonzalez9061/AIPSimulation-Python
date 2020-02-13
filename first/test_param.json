@@ -1,9 +1,0 @@
-{
-    "num_users": 100,
-    "tick_limit": 100,
-    "num_friends": 15,
-    "topics": ["Privacy", "Public Transportation", "Iran"],
-    "IPC_func": "log",
-    "friend_matrix": "adj_matrix.csv",
-    "seed": 1234
-}
