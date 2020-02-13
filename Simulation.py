@@ -2,6 +2,7 @@ import json
 import pandas as pd
 import random
 import numpy as np
+import sys
 
 class User:
 
@@ -64,7 +65,7 @@ class Simulation:
     DEFAULT_NUM_USERS = 100
     DEFAULT_TICK_LIMIT = -1  # no limit default
     DEFAULT_NUM_FRIENDS = 5
-    DEFAULT_INITIAL_TICK = 0
+    DEFAULT_INITIAL_TICK = -1
     DEFAULT_POST_INFLUENCE = 0.1
     MIN_VALUE = -10
     MAX_VALUE = 10
@@ -90,15 +91,17 @@ class Simulation:
         self.values_path = Simulation.DEFAULT_VALUES_PATH
         self.posts_path = Simulation.DEFAULT_POSTS_PATH
         self.IPC_func = self.IPC_map[self.DEFAULT_IPC_FUNC]
+        self.users = None
 
         self.parse_parameters(parameters)
 
-        # Initialize users
-        self.users = pd.Series([User(i) for i in range(self.num_users)])
-        # Add random friends
-        for i in range(self.users.size):
-            user = self.users[i]
-            user.add_friends(set(pd.Series(self.users.index).sample(self.num_friends)))
+        if self.users is None: # if users and friends haven't already been generated
+            # Initialize users
+            self.users = pd.Series([User(i) for i in range(self.num_users)])
+            # Add random friends
+            for i in range(self.users.size):
+                user = self.users[i]
+                user.add_friends(set(pd.Series(self.users.index).sample(self.num_friends)))
 
         # Initiate values df
         self.values = (
@@ -113,10 +116,13 @@ class Simulation:
         # Init posts df
         self.posts = pd.DataFrame(columns=["user", "topic", "tick"])
 
-        # Initialize records with initial state
-        self.values_record = self.values.copy()
-        self.values_record['tick'] = np.full(self.num_users, self.tick_count)
-        self.values_record['user'] = self.values_record.index
+        # Initialize values record with initial state
+        values_record = self.values.copy()
+        values_record['tick'] = np.full(self.num_users, self.tick_count)
+        values_record['user'] = values_record.index
+        values_record = values_record.astype({'user': int,
+                                              'tick': int})
+        values_record.to_csv(self.values_path, index=False)
 
     def run(self):
         # If no limit, continue until interrupted
@@ -132,11 +138,11 @@ class Simulation:
                     break
 
         else:  # run until limit reached
-            while self.tick_count <= self.tick_limit:
+            while self.tick_count < self.tick_limit:
                 try:
                     print("\rBeginning tick {}, {}% complete.".format(
-                        self.tick_count,
-                        round((self.tick_count / self.tick_limit) * 100, 2)
+                        self.tick_count+1,
+                        round(((self.tick_count+1) / self.tick_limit) * 100, 2)
                     ), end="")
                     self.tick()
                     self.tick_count += 1
@@ -144,7 +150,6 @@ class Simulation:
                 except (KeyboardInterrupt, SystemExit):
                     print("Exiting simulation...")
                     break
-        self.save_record()
         print("\nFinshed.")
 
     def tick(self):
@@ -173,25 +178,35 @@ class Simulation:
         """Picks a topic, may consider user's preference in future"""
         return self.topics[random.randint(0, len(self.topics) - 1)]
 
-    def append_record(self, row):
-        """Helper function for update_record, appends directly to records df for faster throughput"""
-        self.values_record.loc[self.values_record.shape[0]] = row
-
     def update_record(self):
         record = self.values.copy()
-        record["tick"] = np.full(self.num_users, self.tick_count)
-        record["user"] = record.index
-        record.apply(self.append_record, axis=1)
+        record['tick'] = np.full(self.num_users, self.tick_count)
+        record['user'] = record.index
+        record = record.astype({'user': int,
+                                'tick': int})
+        record.to_csv(self.values_path, mode='a', header=False, index=False)
 
-    def save_record(self):
-        self.values_record.to_csv(self.values_path, index=False)
-        self.posts.to_csv(self.posts_path, index=False)
-
-    def save_adjacency_matrix(self, path="adj_matric.csv"):
-        adj_mat = pd.DataFrame(np.zeros((self.users.size, self.users.size)))
+    def save_adjacency_matrix(self, path="adj_matrix.csv"):
+        adj_mat = pd.DataFrame(
+                    np.zeros((self.users.size, self.users.size))
+                ).astype(int)
         for user in self.users:
             adj_mat.loc[user.id, user.friends] = 1
         adj_mat.to_csv(path, header=False, index=False)
+
+    def init_users_graph(self, matrix_path):
+        adj_matrix = pd.read_csv('adj_matrix.csv', header=None).astype(int)
+        # assert num_users aligns with the matrix provided
+        if self.num_users != adj_matrix.shape[0]:
+            raise ValueError("""num_users parameter does not match length of adjacency
+            # num_users: {}, length: {}""".format(self.num_users, adj_matrix.shape[0]))
+
+        # Initialize users
+        self.users = pd.Series([User(i) for i in range(self.num_users)])
+
+        for i in adj_matrix.index:
+            user = self.users[i]
+            user.add_friends(set(adj_matrix.columns[adj_matrix.loc[i] == 1]))
 
     def parse_parameters(self, parameters):
         with open(parameters, 'r') as text:
@@ -221,7 +236,13 @@ class Simulation:
         if "IPC_func" in parameters_dict:
             self.IPC_func = self.IPC_map[parameters_dict["IPC_func"]]
 
+        if "seed" in parameters_dict:
+            np.random.seed = parameters_dict["seed"]
+
+        if "friend_matrix" in parameters_dict:
+            self.init_users_graph(parameters_dict["friend_matrix"])
+
         try:
             self.topics = parameters_dict["topics"]
         except:
-            print("No topics provided. Please review your parameters!")
+            sys.exit("No topics provided. Please review your parameters!")
