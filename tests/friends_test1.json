@@ -3,7 +3,5 @@
     "tick_limit": 50,
     "num_friends": 15,
     "topics": ["Privacy", "Public Transportation", "Iran"],
-    "IPC_func": "log",
-    "friend_matrix": "adj_matrix1.csv",
-    "seed": 0
+    "IPC_func": "log"
 }

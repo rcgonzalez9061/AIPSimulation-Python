@@ -1,6 +1,5 @@
 import json
 import pandas as pd
-import random
 import numpy as np
 import sys
 
@@ -92,6 +91,7 @@ class Simulation:
         self.posts_path = Simulation.DEFAULT_POSTS_PATH
         self.IPC_func = self.IPC_map[self.DEFAULT_IPC_FUNC]
         self.users = None
+        self.seed =  None
 
         self.parse_parameters(parameters)
 
@@ -103,9 +103,16 @@ class Simulation:
                 user = self.users[i]
                 user.add_friends(set(pd.Series(self.users.index).sample(self.num_friends)))
 
+            # reset random seed for consistency
+            if self.seed is not None:
+                np.random.seed(self.seed)
+
         # Initiate values df
         self.values = (
-            pd.DataFrame(np.random.rand(self.num_users, len(self.topics)) * Simulation.VALUE_RANGE - (Simulation.VALUE_RANGE / 2),
+            pd.DataFrame(np.random.uniform(
+                            Simulation.MIN_VALUE,
+                            Simulation.MAX_VALUE,
+                            (self.num_users, len(self.topics))),
                          index=self.users.index,
                          columns=self.topics)
         )
@@ -113,8 +120,8 @@ class Simulation:
         # Initiate deltas df
         self.deltas = self.values.copy()
 
-        # Init posts df
-        self.posts = pd.DataFrame(columns=["user", "topic", "tick"])
+        # write intial empty record
+        pd.DataFrame(columns=["user", "topic", "tick"]).to_csv(self.posts_path, index=False)
 
         # Initialize values record with initial state
         values_record = self.values.copy()
@@ -129,9 +136,9 @@ class Simulation:
         if (self.tick_limit == -1):
             while True:
                 try:
+                    self.tick_count += 1
                     print("\rBeginning tick {}".format(self.tick_count), end="")
                     self.tick()
-                    self.tick_count += 1
                     self.update_record()
                 except (KeyboardInterrupt, SystemExit):
                     print("Exiting simulation...")
@@ -140,12 +147,12 @@ class Simulation:
         else:  # run until limit reached
             while self.tick_count < self.tick_limit:
                 try:
+                    self.tick_count += 1
                     print("\rBeginning tick {}, {}% complete.".format(
-                        self.tick_count+1,
-                        round(((self.tick_count+1) / self.tick_limit) * 100, 2)
+                        self.tick_count,
+                        round(((self.tick_count) / self.tick_limit) * 100, 2)
                     ), end="")
                     self.tick()
-                    self.tick_count += 1
                     self.update_record()
                 except (KeyboardInterrupt, SystemExit):
                     print("Exiting simulation...")
@@ -155,13 +162,14 @@ class Simulation:
     def tick(self):
         # reset deltas
         self.deltas = self.deltas * 0.0
+        posts = pd.DataFrame(columns=["user", "topic", "tick"])
 
         for user in self.users:
             # check if users posts
-            if (random.uniform(0, 1) < self.post_chance):
+            if (np.random.uniform(0, 1) < self.post_chance):
                 # Add post
                 topic = self.pick_topic(user)
-                self.posts.loc[self.posts.shape[0]] = {'user': user.id, "topic": topic, "tick": self.tick_count}
+                posts.loc[posts.shape[0]] = {'user': user.id, "topic": topic, "tick": self.tick_count}
 
                 # update deltas
                 diff = (self.values.loc[user.friends, topic] - self.values.loc[user.id, topic])
@@ -170,13 +178,16 @@ class Simulation:
                         self.IPC_func(diff) * magnitude
                 )
 
-        # consolidate deltas
+        # add deltas
         self.values += self.deltas
         self.values = self.values.clip(Simulation.MIN_VALUE, Simulation.MAX_VALUE)
 
+        # write posts
+        posts.to_csv(self.posts_path, mode='a',index=False, header=False)
+
     def pick_topic(self, user):
         """Picks a topic, may consider user's preference in future"""
-        return self.topics[random.randint(0, len(self.topics) - 1)]
+        return self.topics[np.random.randint(0, len(self.topics))]
 
     def update_record(self):
         record = self.values.copy()
@@ -195,7 +206,7 @@ class Simulation:
         adj_mat.to_csv(path, header=False, index=False)
 
     def init_users_graph(self, matrix_path):
-        adj_matrix = pd.read_csv('adj_matrix.csv', header=None).astype(int)
+        adj_matrix = pd.read_csv(matrix_path, header=None).astype(int)
         # assert num_users aligns with the matrix provided
         if self.num_users != adj_matrix.shape[0]:
             raise ValueError("""num_users parameter does not match length of adjacency
@@ -204,9 +215,11 @@ class Simulation:
         # Initialize users
         self.users = pd.Series([User(i) for i in range(self.num_users)])
 
-        for i in adj_matrix.index:
-            user = self.users[i]
-            user.add_friends(set(adj_matrix.columns[adj_matrix.loc[i] == 1]))
+        for user in self.users:
+            user.add_friends(set(adj_matrix.columns[adj_matrix.loc[user.id] == 1]))
+        # for i in adj_matrix.index:
+        #     user = self.users[i]
+        #     user.add_friends(set(adj_matrix.columns[adj_matrix.loc[i] == 1]))
 
     def parse_parameters(self, parameters):
         with open(parameters, 'r') as text:
@@ -237,7 +250,8 @@ class Simulation:
             self.IPC_func = self.IPC_map[parameters_dict["IPC_func"]]
 
         if "seed" in parameters_dict:
-            np.random.seed = parameters_dict["seed"]
+            self.seed = parameters_dict["seed"]
+            np.random.seed(parameters_dict["seed"])
 
         if "friend_matrix" in parameters_dict:
             self.init_users_graph(parameters_dict["friend_matrix"])
