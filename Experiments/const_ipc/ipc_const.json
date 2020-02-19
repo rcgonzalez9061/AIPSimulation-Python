@@ -1,0 +1,10 @@
+{
+    "num_users": 50,
+    "topics": ["tp1", "tp2", "tp3"],
+    "num_friends": 10,
+    "tick_limit": 300,
+    "IPC_func": "const",
+    "seed": 0,
+    "values_path": "./Experiments/const_ipc/values.csv",
+    "posts_path": "./Experiments/const_ipc/posts.csv"
+}

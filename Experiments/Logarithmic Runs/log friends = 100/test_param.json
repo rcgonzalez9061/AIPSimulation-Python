@@ -1,7 +1,0 @@
-{
-    "num_users": 100,
-    "tick_limit": 600,
-    "num_friends": 100,
-    "topics": ["Privacy", "Public Transportation", "Iran"],
-    "IPC_func": "log"
-}

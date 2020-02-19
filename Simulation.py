@@ -17,6 +17,12 @@ class User:
     def getFriends(self):
         return self.friends
 
+def IPC_const(diff):
+    """
+    Simply returns one, simulates posts that influence all opinions of a topic equally.
+    """
+    return 1
+
 def IPC_sin(diff):
     """
     Takes a difference vector, derived from the difference of a Series of a
@@ -77,6 +83,7 @@ class Simulation:
                 "linear": IPC_linear,
                 "quadratic": IPC_quadratic,
                 "log": IPC_log,
+                "const": IPC_const
     }
 
     def __init__(self, parameters):
@@ -166,7 +173,7 @@ class Simulation:
 
         for user in self.users:
             # check if users posts
-            if (np.random.uniform(0, 1) < self.post_chance):
+            if (np.random.uniform(0, 1) <= self.post_chance):
                 # Add post
                 topic = self.pick_topic(user)
                 posts.loc[posts.shape[0]] = {'user': user.id, "topic": topic, "tick": self.tick_count}
