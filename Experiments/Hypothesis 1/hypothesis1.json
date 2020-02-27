@@ -1,0 +1,6 @@
+{
+    "num_users": 100,
+    "topics": ["topic"],
+    "num_friends": 20,
+    "tick_limit": 500
+}
