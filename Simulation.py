@@ -124,6 +124,8 @@ class Simulation:
                          columns=self.topics)
         )
 
+
+    def run(self):
         # Initiate deltas df
         self.deltas = self.values.copy()
 
@@ -133,12 +135,11 @@ class Simulation:
         # Initialize values record with initial state
         values_record = self.values.copy()
         values_record['tick'] = np.full(self.num_users, self.tick_count)
-        values_record['user'] = values_record.index
+        values_record['user'] = self.values.index
         values_record = values_record.astype({'user': int,
                                               'tick': int})
         values_record.to_csv(self.values_path, index=False)
 
-    def run(self):
         # If no limit, continue until interrupted
         if (self.tick_limit == -1):
             while True:
